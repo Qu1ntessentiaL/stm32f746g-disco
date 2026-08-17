@@ -26,71 +26,67 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 # CMake module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-########################################################
+# ===================
+# Memory layout alias
+# ===================
+# add_subdirectory(toolchain/mem_sections)
 
-# Enable Link Time Optimization for reduced binary size
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-string(APPEND CMAKE_C_FLAGS_RELEASE " -flto=auto")
-string(APPEND CMAKE_CXX_FLAGS_RELEASE " -flto=auto")
+# =====================
+# Third-Party Libraries
+# =====================
+include(ThirdParty)
+configure_all_third_party_libraries()
 
-add_subdirectory(Drivers/CMSIS)
-add_subdirectory(Drivers/STM32F7xx_HAL_Driver)
-add_subdirectory(Drivers/BSP)
-add_subdirectory(Drivers/FatFs)
+# ===============
+# Main Executable
+# ===============
 
-# LV_BUILD_CONF_PATH необходим для версии v9.3
-# set(LV_BUILD_CONF_PATH "${CMAKE_SOURCE_DIR}/Src/lv_conf.h" CACHE STRING "" FORCE)
-# Add the lv_conf.h path as a compiler definition so LVGL can find it during compilation
-# Note: No quotes - let __LV_TO_STR() stringify the path to avoid escaped quotes in the macro
-add_compile_definitions(LV_CONF_PATH=${CMAKE_SOURCE_DIR}/Src/lv_conf.h)
-add_subdirectory(Drivers/lvgl)
+# Startup and system files
+set(STARTUP_FILE ${CMAKE_SOURCE_DIR}/toolchain/startup_stm32f746xx.s)
+set(SYSTEM_CFG ${CMAKE_SOURCE_DIR}/toolchain/system_stm32h7xx.c)
 
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(NO_STL ON CACHE BOOL "" FORCE)   # Важно для embedded!
-# Подавляю warning,связанный с include(GNUInstallDirs) в embedded проекте
-set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "")
-add_subdirectory(Drivers/etl EXCLUDE_FROM_ALL)
-unset(CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
-
+# Create executable
 add_executable(${PROJECT_NAME}
         ${STARTUP_FILE}
+        # ${SYSTEM_CFG}
 )
 
+# ==================
+# Project Components
+# ==================
+
+# CubeMX generated files
+# add_subdirectory(cube/Core)
+
+# BSP layer code
+add_subdirectory(Drivers/STM32CubeF7_v1.17.4/BSP)
+
+# Application sources
+# add_subdirectory(src)
 include(Src/app-sources.cmake)
+
+# GUI sources
+# add_subdirectory(eez-ui)
 include(eez-ui/eez-sources.cmake)
 
-# ---------------------------------------------------------------------------------------------------------------------
-set(FREERTOS_KERNEL_PATH "Drivers/FreeRTOS-Kernel")
-
-add_library(freertos_config INTERFACE)
-
-target_include_directories(freertos_config INTERFACE
-        "Src/FreeRTOS"
-)
-
-if (DEFINED FREERTOS_SMP_EXAMPLE AND FREERTOS_SMP_EXAMPLE STREQUAL "1")
-    message(STATUS "Build FreeRTOS SMP example")
-    # Adding the following configurations to build SMP template port
-    add_compile_options(-DconfigNUMBER_OF_CORES=2 -DconfigUSE_PASSIVE_IDLE_HOOK=0)
-endif ()
-
-set(FREERTOS_HEAP "4" CACHE STRING "" FORCE)
-
-set(FREERTOS_PORT "GCC_ARM_CM7" CACHE STRING "" FORCE)
-
-add_subdirectory(${FREERTOS_KERNEL_PATH} FreeRTOS-Kernel)
-
-# ---------------------------------------------------------------------------------------------------------------------
-
-target_link_libraries(lvgl PUBLIC fatfs)
-
-target_link_libraries(${PROJECT_NAME} PUBLIC
+# ==============
+# Link Libraries
+# ==============
+target_link_libraries(lvgl PUBLIC fatfs) # Костыль
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
         bsp
         freertos_kernel
-        fatfs
         lvgl
         etl::etl
+    PRIVATE
+        # mem_layout
 )
+
+# Optional: ETL support
+if (NO_STL)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ETL_NO_STL)
+endif ()
 
 # ===================
 # Post-Build Commands

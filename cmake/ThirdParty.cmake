@@ -6,15 +6,15 @@
 # STM32 HAL and CMSIS
 # -------------------
 function(add_stm32_hal)
-    set(STM32_HAL_DIR ${CMAKE_SOURCE_DIR}/third_party/STM32CubeH7_v1.13.0)
+    set(STM32_CUBE_F7_DIR ${CMAKE_SOURCE_DIR}/Drivers/STM32CubeF7_v1.17.4)
 
-    # Keep project-owned HAL config in third_party/config/HAL.
+    # Keep project-owned HAL config in Drivers/config/HAL.
     # We provide:
     # 1) one-time seeding from CubeMX (if dst doesn't exist),
     # 2) a manual sync target to refresh it on demand after CubeMX regen.
-    set(HAL_CONF_SRC ${CMAKE_SOURCE_DIR}/cube/Core/Inc/stm32h7xx_hal_conf.h)
-    set(HAL_CONF_DST_DIR ${CMAKE_SOURCE_DIR}/third_party/config/HAL)
-    set(HAL_CONF_DST ${HAL_CONF_DST_DIR}/stm32h7xx_hal_conf.h)
+    set(HAL_CONF_SRC ${CMAKE_SOURCE_DIR}/CoGen/Core/Inc/stm32f7xx_hal_conf.h)
+    set(HAL_CONF_DST_DIR ${CMAKE_SOURCE_DIR}/Src)
+    set(HAL_CONF_DST ${HAL_CONF_DST_DIR}/stm32f7xx_hal_conf.h)
     if (EXISTS ${HAL_CONF_SRC} AND NOT EXISTS ${HAL_CONF_DST})
         file(MAKE_DIRECTORY ${HAL_CONF_DST_DIR})
         configure_file(${HAL_CONF_SRC} ${HAL_CONF_DST} COPYONLY)
@@ -31,11 +31,11 @@ function(add_stm32_hal)
         )
     endif ()
 
-    add_subdirectory(${STM32_HAL_DIR}/CMSIS)
-    add_subdirectory(${STM32_HAL_DIR}/STM32H7xx_HAL_Driver)
-    # add_subdirectory(${STM32_HAL_DIR}/Utilities/Fonts)
+    add_subdirectory(${STM32_CUBE_F7_DIR}/CMSIS)
+    add_subdirectory(${STM32_CUBE_F7_DIR}/STM32F7xx_HAL_Driver)
+    # add_subdirectory(${STM32_CUBE_F7_DIR}/Utilities/Fonts)
 
-    message(STATUS "STM32 HAL: Configured from ${STM32_HAL_DIR}")
+    message(STATUS "STM32 HAL: Configured from ${STM32_CUBE_F7_DIR}")
 endfunction()
 
 # -------------------------------------------
@@ -48,30 +48,31 @@ function(add_lvgl_library)
     set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
 
     # Set LVGL configuration file path
-    set(LV_BUILD_CONF_PATH
-            ${CMAKE_SOURCE_DIR}/third_party/config/lvgl/lv_conf.h
-            CACHE STRING "" FORCE
-    )
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl)
+    add_compile_definitions(LV_CONF_PATH=${CMAKE_SOURCE_DIR}/Src/lv_conf.h)
+    # set(LV_BUILD_CONF_PATH
+    #         ${CMAKE_SOURCE_DIR}/Drivers/config/lvgl/lv_conf.h
+    #         CACHE STRING "" FORCE
+    # )
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Drivers/lvgl)
     target_link_libraries(lvgl
         PRIVATE
             fatfs
     )
 
-    message(STATUS "LVGL: Configured with ${LV_BUILD_CONF_PATH}")
+    message(STATUS "LVGL: Configured with ${LV_CONF_PATH}")
 endfunction()
 
 # --------
 # FreeRTOS
 # --------
 function(add_freertos_library)
-    set(FREERTOS_KERNEL_PATH ${CMAKE_SOURCE_DIR}/third_party/FreeRTOS-Kernel)
+    set(FREERTOS_KERNEL_PATH ${CMAKE_SOURCE_DIR}/Drivers/FreeRTOS-Kernel)
 
     # Create FreeRTOS config interface library
     add_library(freertos_config INTERFACE)
     target_include_directories(freertos_config
         INTERFACE
-            ${CMAKE_SOURCE_DIR}/third_party/config/FreeRTOS
+            ${CMAKE_SOURCE_DIR}/Src/FreeRTOS
     )
 
     # Configure FreeRTOS
@@ -103,24 +104,22 @@ endfunction()
 # ETL (Embedded Template Library) - Optional
 # ------------------------------------------
 function(add_etl_library)
-    if(TARGET_USES_ETL)
-        set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set(NO_STL ON CACHE BOOL "" FORCE)
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(NO_STL ON CACHE BOOL "" FORCE)
 
-        # Suppress GNUInstallDirs warnings for embedded projects
-        set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "")
-        add_subdirectory(third_party/etl EXCLUDE_FROM_ALL)
-        unset(CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
+    # Suppress GNUInstallDirs warnings for embedded projects
+    set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "")
+    add_subdirectory(Drivers/etl EXCLUDE_FROM_ALL)
+    unset(CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
 
-        message(STATUS "ETL: Configured (NO_STL mode)")
-    endif()
+    message(STATUS "ETL: Configured (NO_STL mode)")
 endfunction()
 
 # -------------
 # FatFS Library
 # -------------
 function(add_fatfs_library)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/STM32CubeH7_v1.13.0/FatFs)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Drivers/STM32CubeF7_v1.17.4/FatFs)
 
     message(STATUS "FatFs configured")
 endfunction()
@@ -129,7 +128,7 @@ endfunction()
 # USB device MSC
 # --------------
 function(add_usbd_msc_library)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/STM32CubeH7_v1.13.0/STM32_USB_Device_Library)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Drivers/STM32CubeF7_v1.17.4/STM32_USB_Device_Library)
 
     message(STATUS "USB device MSC configured")
 endfunction()
@@ -143,10 +142,10 @@ macro(configure_all_third_party_libraries)
     add_stm32_hal()
     add_lvgl_library()
     add_freertos_library()
-    add_wsh_shell_library()
-    # add_etl_library()  # Uncomment if needed
+    # add_wsh_shell_library()
+    add_etl_library()
     add_fatfs_library()
-    add_usbd_msc_library()
+    # add_usbd_msc_library()
 
     message(STATUS "===== Third-Party Libraries Configured =====")
 endmacro()
