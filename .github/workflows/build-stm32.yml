@@ -1,0 +1,124 @@
+name: Build STM32 Firmware (Windows + Presets + Cache + Size Check)
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 🧰 Устанавливаем актуальный ARM GCC Toolchain
+      - name: Install latest ARM GCC Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: "15.2.Rel1"
+
+      - name: Check GCC version
+        run: arm-none-eabi-gcc --version
+
+      # ⚡️ Кэширование CMake сборок
+      - name: Install ccache
+        run: choco install ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: C:\Users\runneradmin\AppData\Local\ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.c', '**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Setup ccache
+        shell: bash
+        run: |
+          echo "CC=ccache arm-none-eabi-gcc" >> $GITHUB_ENV
+          echo "CXX=ccache arm-none-eabi-g++" >> $GITHUB_ENV
+
+      # Debug build
+      - name: Configure Debug
+        shell: bash
+        run: cmake --preset Debug
+
+      - name: Build Debug
+        shell: bash
+        run: cmake --build build/Debug --parallel
+
+      - name: Show Debug firmware size
+        shell: bash
+        run: |
+          ELF=$(find build/Debug -type f -name "*.elf" | head -n 1)
+          if [ -z "$ELF" ]; then
+            echo "❌ No ELF file found in build/Debug"
+            exit 1
+          fi
+          echo "📦 Found ELF: $ELF"
+          arm-none-eabi-size "$ELF"
+
+      - name: Upload Debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stm32f7-debug
+          path: |
+            build/Debug/**/*.elf
+            build/Debug/**/*.bin
+            build/Debug/**/*.hex
+            build/Debug/**/*_disasm.s
+
+      # Release build
+      - name: Configure Release
+        shell: bash
+        run: cmake --preset Release
+
+      - name: Build Release
+        shell: bash
+        run: cmake --build build/Release --parallel
+
+      - name: Show Release firmware size
+        shell: bash
+        run: |
+          ELF=$(find build/Release -type f -name "*.elf" | head -n 1)
+          if [ -z "$ELF" ]; then
+            echo "❌ No ELF file found in build/Release"
+            exit 1
+          fi
+          echo "📦 Found ELF: $ELF"
+          arm-none-eabi-size "$ELF"
+
+      # 🔍 Проверяем лимит Flash (1MB)
+      - name: Check flash size limit (1MB)
+        shell: bash
+        run: |
+          ELF=$(find build/Release -type f -name "*.elf" | head -n 1)
+          if [ -z "$ELF" ]; then
+            echo "❌ No ELF file found for flash size check"
+            exit 1
+          fi
+          SIZE=$(arm-none-eabi-size -A "$ELF" | grep 'text' | awk '{print $2}')
+          echo "Firmware .text section size: $SIZE bytes"
+          if [ "$SIZE" -gt 1048576 ]; then
+            echo "❌ Firmware too large ($SIZE > 1048576 bytes)"
+            exit 1
+          fi
+          echo "✅ Firmware fits in flash (${SIZE}/1048576 bytes)"
+
+      - name: Upload Release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stm32f7-release
+          path: |
+            build/Release/**/*.elf
+            build/Release/**/*.bin
+            build/Release/**/*.hex
+            build/Release/**/*_disasm.s
