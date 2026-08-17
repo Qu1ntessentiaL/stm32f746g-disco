@@ -1,6 +1,10 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Ensure definitions are only used by the compiler, and not by the assembler. */
 #if defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__)
 
@@ -51,6 +55,11 @@ extern uint32_t SystemCoreClock;
 #define configUSE_TRACE_FACILITY                 1  ///< Включить отладочную информацию (номера задач, типы очередей)
 #define configUSE_STATS_FORMATTING_FUNCTIONS     1  ///< Включить vTaskList() и vTaskGetRunTimeStats()
 #define configRECORD_STACK_HIGH_ADDRESS          1  ///< Запись верхнего адреса стека для отладки
+
+#if (configGENERATE_RUN_TIME_STATS == 1)
+void ConfigureTimerForRunTimeStats(void);
+uint32_t GetRuntimeCounterValue(void);
+#endif
 
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() ConfigureTimerForRunTimeStats()
 #define portGET_RUN_TIME_COUNTER_VALUE()         GetRuntimeCounterValue()
@@ -126,5 +135,9 @@ extern uint32_t SystemCoreClock;
 
 #define configCOMMAND_INT_MAX_OUTPUT_SIZE 256
 #define configAPPLICATION_PROVIDES_cOutputBuffer 0
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* FREERTOS_CONFIG_H */
