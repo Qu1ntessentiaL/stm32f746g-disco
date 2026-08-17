@@ -286,16 +286,7 @@ void DMA2_Stream3_IRQHandler(void) {
     HAL_DMA_IRQHandler(uSdHandle.hdmarx);
 }
 
-__attribute__((naked)) void HardFault_Handler(void) {
-    __asm volatile(
-            "TST LR, #4\n"
-            "ITE EQ\n"
-            "MRSEQ R0, MSP\n"
-            "MRSNE R0, PSP\n"
-            "B HardFault_Handler_C\n" // Переход на C-обработчик
-            );
-}
-
+__attribute__((used))
 void HardFault_Handler_C(uint32_t *stack_frame) {
     // Дамп регистров из стека
     uint32_t r0 = stack_frame[0];
@@ -317,4 +308,16 @@ void HardFault_Handler_C(uint32_t *stack_frame) {
         __asm("BKPT #0");
     }
 }
+
+__attribute__((naked))
+void HardFault_Handler(void) {
+    __asm volatile(
+            "TST LR, #4\n"
+            "ITE EQ\n"
+            "MRSEQ R0, MSP\n"
+            "MRSNE R0, PSP\n"
+            "B HardFault_Handler_C\n" // Переход на C-обработчик
+            );
+}
+
 /* USER CODE END 1 */

@@ -53,7 +53,7 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM);    /* end of RAM */
+_estack = ORIGIN(SRAM1) + LENGTH(SRAM1);    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x4000;      /* required amount of heap  */
 _Min_Stack_Size = 0x2000; /* required amount of stack */
@@ -69,7 +69,10 @@ MEMORY
        DTCM (64KB)  : 0x20000000 - 0x2000FFFF
        SRAM1(240KB) : 0x20010000 - 0x2004BFFF
        SRAM2(16KB)  : 0x2004C000 - 0x2004FFFF */
-    RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 320K
+    /* RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 320K */
+    DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 64K
+    SRAM1 (xrw)    : ORIGIN = 0x20010000, LENGTH = 240K
+    SRAM2 (xrw)    : ORIGIN = 0x2004C000, LENGTH = 16K
     /* Internal Flash
        0x08000000 - 0x080FFFFF */
     FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1024K
@@ -160,7 +163,7 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >RAM AT> FLASH
+  } >SRAM1 AT> FLASH
 
   
   /* Uninitialized data section */
@@ -177,7 +180,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
+  } >SRAM1
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
@@ -188,7 +191,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } >SRAM1
 
   /* External QSPI Flash section for code */
   .extflash_text :

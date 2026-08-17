@@ -61,6 +61,8 @@ void DMA2_Stream5_IRQHandler(void);
 void DMA2_Stream7_IRQHandler(void);
 void LTDC_IRQHandler(void);
 /* USER CODE BEGIN EFP */
+void HardFault_Handler_C(uint32_t *stack_frame);
+void HardFault_Handler(void);
 void SDMMC1_IRQHandler(void);
 void DMA2_Stream6_IRQHandler(void);
 void DMA2_Stream3_IRQHandler(void);

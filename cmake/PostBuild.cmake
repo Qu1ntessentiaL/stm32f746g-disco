@@ -142,10 +142,10 @@ function(add_erase_flash_target)
     add_custom_target(erase_flash
         COMMAND ${CMAKE_COMMAND} -E echo "Erasing flash memory..."
         COMMAND openocd
-            -f custom_stm32h743xih6.cfg
-            -c "reset_config none; init; reset run; halt; stm32h7x mass_erase 0; shutdown"
+            -f stm32f746g-disco.cfg
+            -c "reset_config none; init; reset run; halt; stm32f7x mass_erase 0; shutdown"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Erasing flash memory of STM32H743"
+        COMMENT "Erasing flash memory of STM32F746"
         VERBATIM
     )
 endfunction()
@@ -155,11 +155,11 @@ function(add_flash_target TARGET_NAME)
     add_custom_target(flash
         COMMAND ${CMAKE_COMMAND} -E echo "Flashing firmware..."
         COMMAND openocd
-            -f custom_stm32h743xih6.cfg
+            -f stm32f746g-disco.cfg
             -c "program $<TARGET_FILE:${TARGET_NAME}> verify reset exit"
         DEPENDS ${TARGET_NAME}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMENT "Flashing firmware to STM32H743"
+        COMMENT "Flashing firmware to STM32F746"
         VERBATIM
     )
 endfunction()
