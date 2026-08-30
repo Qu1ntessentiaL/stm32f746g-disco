@@ -42,10 +42,12 @@ endfunction()
 # LVGL (Light and Versatile Graphics Library)
 # -------------------------------------------
 function(add_lvgl_library)
-    # Configure LVGL options
-    set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
-    set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
+    # Do not create the lvgl_examples/lvgl_demos/lvgl_thorvg targets.
+    # These names are read by lvgl/env_support/cmake/custom.cmake;
+    # the CONFIG_LV_* ones only work in the ESP-IDF/Kconfig build.
+    set(LV_CONF_BUILD_DISABLE_EXAMPLES ON CACHE BOOL "" FORCE)
+    set(LV_CONF_BUILD_DISABLE_DEMOS ON CACHE BOOL "" FORCE)
+    set(LV_CONF_BUILD_DISABLE_THORVG_INTERNAL ON CACHE BOOL "" FORCE)
 
     # Set LVGL configuration file path
     add_compile_definitions(LV_CONF_PATH=${CMAKE_SOURCE_DIR}/Src/lv_conf.h)
@@ -54,10 +56,10 @@ function(add_lvgl_library)
     #         CACHE STRING "" FORCE
     # )
     add_subdirectory(${CMAKE_SOURCE_DIR}/Drivers/lvgl)
-    target_link_libraries(lvgl
-        PRIVATE
-            fatfs
-    )
+    # target_link_libraries(lvgl
+    #     PRIVATE
+    #         fatfs
+    # )
 
     message(STATUS "LVGL: Configured with ${LV_CONF_PATH}")
 endfunction()

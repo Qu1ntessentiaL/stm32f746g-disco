@@ -72,12 +72,12 @@ include(eez-ui/eez-sources.cmake)
 # ==============
 # Link Libraries
 # ==============
-target_link_libraries(lvgl PUBLIC fatfs) # Костыль
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         bsp
         freertos_kernel
         lvgl
+        fatfs
         etl::etl
     PRIVATE
         # mem_layout
